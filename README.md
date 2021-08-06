@@ -6,11 +6,17 @@
 [![Github.com](https://img.shields.io/github/last-commit/omgnetwork/ex_secp256k1.svg)](https://github.com/omgnetwork/ex_secp256k1)
 
 
-Rust Native Implemented Function (NIF) that wraps a couple functions from the [libsecp256k1](https://github.com/paritytech/libsecp256k1) Rust library. It only wraps `secp256k1` functions used in Ethereum.
+ C-NIF that wraps a couple functions from the [secp256k1](https://github.com/bitcoin-core/secp256k1). It only wraps `secp256k1` functions used in Ethereum.
 
 ## Installation
 
-`ex_secp256k1` requires Rust to be installed.
+```shell
+    # Ubuntu 20.04
+    sudo apt install git autoconf automake libtool make libssl-dev
+    # Centos 7
+    yum -y install devtoolset-10 autoconf automake make openssl-devel libtool
+    scl enable devtoolset-10 bash
+```
 
 The package can be installed by adding `ex_secp256k1` to your list of
 dependencies in `mix.exs`:
