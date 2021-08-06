@@ -19,6 +19,7 @@ $(LIB_NAME): $(NIF_SRC) $(LIB_EXT)
 	$(CC) $(CFLAGS) -shared $^ $(LDFLAGS) -o $@
 
 $(LIB_EXT):
+	if [ ! -d "deps" ]; then mkdir deps; fi
 	cd deps; if [ ! -d "secp256k1" ]; then git clone https://github.com/bitcoin-core/secp256k1.git; fi
 	cd deps/secp256k1 ; ./autogen.sh ; CFLAGS="-fPIC" ./configure --enable-module-ecdh --enable-module-recovery; make
 
