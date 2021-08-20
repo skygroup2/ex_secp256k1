@@ -3,7 +3,7 @@ defmodule ExSecp256k1 do
   def sign(message, private_key) when is_binary(message) and byte_size(message) == 32 and is_binary(private_key) and byte_size(private_key) == 32 do
     case sign_nif(message, private_key) do
       {:ok, <<sig_s :: binary-size(32), sig_r :: binary-size(32), recover_id>>} ->
-        {:ok, {bin_reverse(sig_s), bin_reverse(sig_r), recover_id}}
+        {:ok, {bin32_swap(sig_s), bin32_swap(sig_r), recover_id}}
       {:error, reason} ->
         {:error, reason}
     end
@@ -38,7 +38,7 @@ defmodule ExSecp256k1 do
   defp recover1(hash, sig_s, sig_r, recover_id)
       when is_binary(hash) and byte_size(hash) == 32 and is_binary(sig_r) and byte_size(sig_r) == 32 and
            is_binary(sig_s) and byte_size(sig_s) == 32 and is_integer(recover_id) and recover_id < 4 do
-    sig = bin_reverse(sig_r) <> bin_reverse(sig_s)
+    sig = bin32_swap(sig_r) <> bin32_swap(sig_s)
     case recover_nif(hash, <<sig :: binary, recover_id>>) do
       {:ok, public_key} ->
         {:ok, correct_public_key(public_key)}
@@ -78,10 +78,11 @@ defmodule ExSecp256k1 do
   end
 
   defp correct_public_key(<<px :: binary-size(32), py :: binary-size(32)>>) do
-    <<4>> <> bin_reverse(px) <> bin_reverse(py)
+    <<4>> <> bin32_swap(px) <> bin32_swap(py)
   end
-  defp bin_reverse(bin) do
-    bin |> :binary.decode_unsigned(:little) |> :binary.encode_unsigned(:big)
+  defp bin32_swap(bin) do
+    value =:binary.decode_unsigned(bin, :little)
+    <<value :: 256>>
   end
 
   # NIF
