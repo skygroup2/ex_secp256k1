@@ -76,10 +76,11 @@ defmodule ExSecp256k1 do
   def create_public_key(_private_key) do
     raise ArgumentError
   end
-  def compress_public_key(<<4, px :: binary-size(32), py :: binary-size(32)>>) do
-    compress_public_key_nif(bin32_swap(px) <> bin32_swap(py))
+  def format_public_key(public_key) when
+        is_binary(public_key) and (byte_size(public_key) == 65 or byte_size(public_key) == 33) do
+    format_public_key_nif(public_key)
   end
-  def compress_public_key(_public_key) do
+  def format_public_key(_public_key) do
     {:error, :wrong_public_key}
   end
 
@@ -95,7 +96,7 @@ defmodule ExSecp256k1 do
   def sign_nif(_message, _private_key), do: :erlang.nif_error(:nif_not_loaded)
   def recover_nif(_hash, _recoverable_signature), do: :erlang.nif_error(:nif_not_loaded)
   def create_public_key_nif(_private_key), do: :erlang.nif_error(:nif_not_loaded)
-  def compress_public_key_nif(_public_key), do: :erlang.nif_error(:nif_not_loaded)
+  def format_public_key_nif(_public_key), do: :erlang.nif_error(:nif_not_loaded)
 
   @compile {:autoload, false}
   @on_load {:init, 0}

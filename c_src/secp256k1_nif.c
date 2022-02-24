@@ -107,19 +107,28 @@ static ERL_NIF_TERM create_public_key(ErlNifEnv *env, int argc, const ERL_NIF_TE
     }
 }
 
-static ERL_NIF_TERM compress_public_key(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+static ERL_NIF_TERM format_public_key(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
     ErlNifBinary input;
     ErlNifBinary output;
     ERL_NIF_TERM ret;
-    size_t out_size = 33;
+    size_t out_size = 65;
+    secp256k1_pubkey pubkey;
+    unsigned int flags = SECP256K1_EC_COMPRESSED;
     secp256k1_context *ctx = NULL;
     if (argc != 1) {
         return enif_make_badarg(env);
     }
-    if (!enif_is_binary(env, argv[0]) || !enif_inspect_binary(env, argv[0], &input) || input.size != 64) {
+    if (!enif_is_binary(env, argv[0]) || !enif_inspect_binary(env, argv[0], &input) || (input.size != 65 && input.size != 33)) {
         return enif_make_tuple2(env, atom_error, atom_arg_wrong_size);
     }
-    if (!enif_alloc_binary(33, &output)) {
+    if(input.size == 33) {
+        out_size = 65;
+        flags = SECP256K1_EC_UNCOMPRESSED;
+    } else {
+        out_size = 33;
+        flags = SECP256K1_EC_COMPRESSED;
+    }
+    if (!enif_alloc_binary(out_size, &output)) {
         return enif_make_tuple2(env, atom_error, atom_out_of_memory);
     }
     ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
@@ -127,7 +136,12 @@ static ERL_NIF_TERM compress_public_key(ErlNifEnv *env, int argc, const ERL_NIF_
         enif_release_binary(&output);
         return enif_make_tuple2(env, atom_error, atom_out_of_memory);
     }
-    if(secp256k1_ec_pubkey_serialize(ctx, output.data, &out_size, (secp256k1_pubkey*)input.data, SECP256K1_EC_COMPRESSED)) {
+    if(!secp256k1_ec_pubkey_parse(ctx, &pubkey, input.data, input.size)) {
+        secp256k1_context_destroy(ctx);
+        enif_release_binary(&output);
+        return enif_make_tuple2(env, atom_error, atom_public_key_failure);
+    }
+    if(secp256k1_ec_pubkey_serialize(ctx, output.data, &out_size, &pubkey, flags)) {
         secp256k1_context_destroy(ctx);
         ret = enif_make_binary(env, &output);
         enif_release_binary(&output);
@@ -181,7 +195,7 @@ static void destroy_inf(ErlNifEnv *env, void *priv_data) {
 static ErlNifFunc ic_sec_nif_funcs[] =
 {
     {"create_public_key_nif", 1, create_public_key},
-    {"compress_public_key_nif", 1, compress_public_key},
+    {"format_public_key_nif", 1, format_public_key},
     {"recover_nif", 2, recover, ERL_NIF_DIRTY_JOB_CPU_BOUND},
     {"sign_nif",    2, sign,ERL_NIF_DIRTY_JOB_CPU_BOUND},
 };
